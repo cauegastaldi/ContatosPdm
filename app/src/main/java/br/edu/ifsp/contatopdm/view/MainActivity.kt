@@ -12,13 +12,16 @@ import android.widget.AdapterView.AdapterContextMenuInfo
 import android.widget.Toast
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.recyclerview.widget.LinearLayoutManager
 import br.edu.ifsp.contatopdm.R
 import br.edu.ifsp.contatopdm.adapter.ContactAdapter
+import br.edu.ifsp.contatopdm.adapter.ContactRvAdapter
+import br.edu.ifsp.contatopdm.adapter.OnContactClickListener
 import br.edu.ifsp.contatopdm.controller.ContactController
 import br.edu.ifsp.contatopdm.databinding.ActivityMainBinding
 import br.edu.ifsp.contatopdm.model.Contact
 
-class MainActivity : BaseActivity() {
+class MainActivity : BaseActivity(), OnContactClickListener {
     private val amb: ActivityMainBinding by lazy {
         ActivityMainBinding.inflate(layoutInflater)
     }
@@ -27,8 +30,8 @@ class MainActivity : BaseActivity() {
     private val contactList: MutableList<Contact> = mutableListOf()
 
     // Adapter
-    private val contactAdapter: ContactAdapter by lazy {
-        ContactAdapter(this, contactList)
+    private val contactAdapter: ContactRvAdapter by lazy {
+        ContactRvAdapter(contactList, this)
     }
 
     private lateinit var carl: ActivityResultLauncher<Intent>
@@ -44,7 +47,8 @@ class MainActivity : BaseActivity() {
         supportActionBar?.subtitle = getString(R.string.contact_list)
 
         contactController.getContacts()
-        amb.contactsLv.adapter = contactAdapter
+        amb.contactsRv.layoutManager = LinearLayoutManager(this)
+        amb.contactsRv.adapter = contactAdapter
 
         carl = registerForActivityResult(
             ActivityResultContracts.StartActivityForResult()) { result ->
@@ -62,29 +66,13 @@ class MainActivity : BaseActivity() {
                         Toast.makeText(this, "Contato editado!", Toast.LENGTH_SHORT).show()
                     } else {
                         contactController.insertContact(_contact)
-                        contactController.getContacts()
                         Toast.makeText(this, "Contato adicionado!", Toast.LENGTH_SHORT).show()
                     }
+                    contactController.getContacts()
                     contactAdapter.notifyDataSetChanged()
                 }
             }
         }
-
-        registerForContextMenu(amb.contactsLv)
-
-        // listener para clique rápido (um clique) nos itens da lista
-        amb.contactsLv.setOnItemClickListener (object: AdapterView.OnItemClickListener {
-            override fun onItemClick(
-                parent: AdapterView<*>?,
-                view: View?,
-                position: Int,
-                id: Long) {
-                    val contact = contactList[position]
-                    val contactIntent = Intent(this@MainActivity, ContactActivity::class.java)
-                    contactIntent.putExtra(EXTRA_CONTACT, contact)
-                    carl.launch(contactIntent)
-            }
-        })
     }
 
     override fun onCreateOptionsMenu(menu: Menu?): Boolean {
@@ -93,7 +81,7 @@ class MainActivity : BaseActivity() {
     }
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
-        return when(item.itemId) {
+        return when (item.itemId) {
             R.id.addContactMi -> {
                 carl.launch(Intent(this, ContactActivity::class.java))
                 true
@@ -102,39 +90,34 @@ class MainActivity : BaseActivity() {
         }
     }
 
-    override fun onCreateContextMenu(
-        menu: ContextMenu?,
-        v: View?,
-        menuInfo: ContextMenu.ContextMenuInfo?
-    ) {
-        menuInflater.inflate(R.menu.context_menu_main, menu)
-    }
-
-    override fun onContextItemSelected(item: MenuItem): Boolean {
-        val position = (item.menuInfo as AdapterContextMenuInfo).position
-        val contact = contactList[position]
-
-        return when(item.itemId) {
-            R.id.removeContactMi -> {
-                contactList.removeAt(position)
-                contactController.removeContact(contact)
-                contactAdapter.notifyDataSetChanged()
-                Toast.makeText(this, "Contato removido!", Toast.LENGTH_SHORT).show()
-                true
-            }
-            R.id.editContactMi -> {
-                val contactIntent = Intent(this, ContactActivity::class.java)
-                contactIntent.putExtra(EXTRA_CONTACT, contact)
-                carl.launch(contactIntent)
-                true
-            }
-            else -> { false }
-        }
-    }
-
     fun updateContactList(_contactList: MutableList<Contact>) {
         contactList.clear()
         contactList.addAll(_contactList)
         contactAdapter.notifyDataSetChanged()
+    }
+
+    // Funções que serão chamadas sempre que uma célula for clicada no RecyclerView.
+    // A associação entre célula e função será feita no ContactRvAdapter.
+    override fun onTileContactClick(position: Int) {
+        val contact = contactList[position]
+        val contactIntent = Intent(this@MainActivity, ContactActivity::class.java)
+        contactIntent.putExtra(EXTRA_CONTACT, contact)
+        contactIntent.putExtra(EXTRA_VIEW_CONTACT, true)
+        startActivity(contactIntent)
+    }
+
+    override fun onEditMenuItemClick(position: Int) {
+        val contact = contactList[position]
+        val contactIntent = Intent(this, ContactActivity::class.java)
+        contactIntent.putExtra(EXTRA_CONTACT, contact)
+        carl.launch(contactIntent)
+    }
+
+    override fun onRemoveMenuItemClick(position: Int) {
+        val contact = contactList[position]
+        contactList.removeAt(position)
+        contactController.removeContact(contact)
+        contactAdapter.notifyDataSetChanged()
+        Toast.makeText(this, "Contato removido!", Toast.LENGTH_SHORT).show()
     }
 }

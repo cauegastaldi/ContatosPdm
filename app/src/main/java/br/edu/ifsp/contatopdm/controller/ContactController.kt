@@ -13,13 +13,28 @@ class ContactController(private val mainActivity: MainActivity) {
         mainActivity, ContactDaoRoom::class.java, ContactDaoRoom.CONTACT_DATABASE_FILE
     ).build().getContactDao()
 
-    fun insertContact(contact: Contact) = contactDaoImpl.createContact(contact)
+    fun insertContact(contact: Contact) {
+        Thread {
+            contactDaoImpl.createContact(contact)
+        }.start()
+    }
     fun getContact(id: Int) = contactDaoImpl.retrieveContact(id)
     fun getContacts() {
         Thread {
-            mainActivity.updateContactList(contactDaoImpl.retrieveContacts())
+            val list = contactDaoImpl.retrieveContacts()
+            mainActivity.runOnUiThread {
+                mainActivity.updateContactList(list)
+            }
         }.start()
     }
-    fun editContact(contact: Contact) = contactDaoImpl.updateContact(contact)
-    fun removeContact(contact: Contact) = contactDaoImpl.deleteContact(contact)
+    fun editContact(contact: Contact) {
+        Thread {
+            contactDaoImpl.updateContact(contact)
+        }.start()
+    }
+    fun removeContact(contact: Contact) {
+        Thread {
+            contactDaoImpl.deleteContact(contact)
+        }.start()
+    }
 }
