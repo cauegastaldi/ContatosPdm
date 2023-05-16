@@ -1,0 +1,14 @@
+<resources>
+    <string name="app_name">ContatoPdm</string>
+    <string name="contact_list">Lista de Contatos</string>
+    <string name="add_contact">Adicionar Contato</string>
+
+    <string name="name">Nome</string>
+    <string name="address">Endereço</string>
+    <string name="phone">Telefone</string>
+    <string name="email">Email</string>
+    <string name="save">Salvar</string>
+    <string name="contact_info">Informações do contato</string>
+    <string name="remove_contact">Remover Contato</string>
+    <string name="edit_contact">Editar contato</string>
+</resources>
